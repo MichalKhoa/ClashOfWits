@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import asyncio
+import os
 import config
 import database
 from ai_client import AIClient
@@ -113,6 +114,10 @@ class ClashSubmissionView(discord.ui.View):
             color=discord.Color.blue()
         )
         
+        img_url, _ = config.get_theme_image(self.theme)
+        if img_url:
+            embed.set_image(url=img_url)
+        
         await self.bot_interaction.edit_original_response(embed=embed, view=self)
 
         # Check if both are done
@@ -213,7 +218,14 @@ class DuelCog(commands.Cog):
             color=discord.Color.orange()
         )
         
-        await interaction.response.send_message(content=opponent.mention, embed=embed, view=view)
+        img_url, file = config.get_theme_image(theme)
+        if img_url:
+            embed.set_image(url=img_url)
+        
+        if file:
+            await interaction.response.send_message(content=opponent.mention, embed=embed, view=view, file=file)
+        else:
+            await interaction.response.send_message(content=opponent.mention, embed=embed, view=view)
         
         # Wait for acceptor
         await view.wait()
@@ -348,12 +360,19 @@ class DuelCog(commands.Cog):
         )
         result_embed.set_footer(text="⚔️ Clash resolved! Check your /profile for stats.")
         
+        img_url, file = config.get_theme_image(theme)
+        if img_url:
+            result_embed.set_image(url=img_url)
+            
         try:
             await interaction.delete_original_response()
         except:
             pass
             
-        await interaction.followup.send(embed=result_embed)
+        if file:
+            await interaction.followup.send(embed=result_embed, file=file)
+        else:
+            await interaction.followup.send(embed=result_embed)
 
 async def setup(bot):
     await bot.add_cog(DuelCog(bot))

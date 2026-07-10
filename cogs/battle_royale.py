@@ -3,6 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 import asyncio
 import random
+import os
 from typing import List, Dict, Any
 import config
 import database
@@ -109,6 +110,11 @@ class BRSubmissionView(discord.ui.View):
             ),
             color=discord.Color.blue()
         )
+        
+        img_url, _ = config.get_theme_image(self.theme)
+        if img_url:
+            embed.set_image(url=img_url)
+            
         await self.bot_interaction.edit_original_response(embed=embed, view=self)
 
         # Check if all submitted
@@ -162,24 +168,33 @@ class BRLobbyView(discord.ui.View):
         self.started = False
         self.done_event = asyncio.Event()
 
-    async def update_lobby_embed(self):
+    def build_lobby_embed_and_file(self) -> tuple:
         contestant_list = "\n".join([f"• {c.mention}" for c in self.contestants]) if self.contestants else "*No one has joined yet.*"
         
         theme_text = ""
-        if self.theme:
-            theme_text = f"**Setting/Theme:** {self.theme['name']}\n*Description:* {self.theme['description']}\n\n"
-
         embed = discord.Embed(
             title="👑 Battle Royale Lobby",
-            description=(
-                f"Host: {self.host.mention}\n\n"
-                f"{theme_text}"
-                f"Click **Join** to enter the battle! (Max 8 players allowed)\n"
-                f"The host can start the tournament when ready.\n\n"
-                f"**Joined Contestants ({len(self.contestants)}/8):**\n{contestant_list}"
-            ),
             color=discord.Color.gold()
         )
+        
+        file = None
+        if self.theme:
+            theme_text = f"**Setting/Theme:** {self.theme['name']}\n*Description:* {self.theme['description']}\n\n"
+            img_url, file = config.get_theme_image(self.theme)
+            if img_url:
+                embed.set_image(url=img_url)
+
+        embed.description = (
+            f"Host: {self.host.mention}\n\n"
+            f"{theme_text}"
+            f"Click **Join** to enter the battle! (Max 8 players allowed)\n"
+            f"The host can start the tournament when ready.\n\n"
+            f"**Joined Contestants ({len(self.contestants)}/8):**\n{contestant_list}"
+        )
+        return embed, file
+
+    async def update_lobby_embed(self):
+        embed, _ = self.build_lobby_embed_and_file()
         await self.bot_interaction.edit_original_response(embed=embed, view=self)
 
     @discord.ui.button(label="Join", style=discord.ButtonStyle.green, emoji="⚔️")
@@ -249,13 +264,11 @@ class BattleRoyaleCog(commands.Cog):
         
         # 1. Lobby Phase
         lobby_view = BRLobbyView(interaction.user, theme, interaction)
-        embed = discord.Embed(
-            title="👑 Battle Royale Lobby Opening...",
-            description="Setting up the arena...",
-            color=discord.Color.gold()
-        )
-        await interaction.response.send_message(embed=embed, view=lobby_view)
-        await lobby_view.update_lobby_embed()
+        embed, file = lobby_view.build_lobby_embed_and_file()
+        if file:
+            await interaction.response.send_message(embed=embed, view=lobby_view, file=file)
+        else:
+            await interaction.response.send_message(embed=embed, view=lobby_view)
 
         # Wait for start or timeout
         await lobby_view.done_event.wait()
@@ -446,7 +459,14 @@ class BattleRoyaleCog(commands.Cog):
                     inline=False
                 )
                 
-                await channel.send(embed=result_embed)
+                img_url, file = config.get_theme_image(theme)
+                if img_url:
+                    result_embed.set_image(url=img_url)
+                
+                if file:
+                    await channel.send(embed=result_embed, file=file)
+                else:
+                    await channel.send(embed=result_embed)
                 
                 # Sleep between matches to allow users to read the battle text
                 await asyncio.sleep(12)
