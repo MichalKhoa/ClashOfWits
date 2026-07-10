@@ -1,3 +1,11 @@
+"""
+config.py
+
+Configuration settings for the Clash of Wits bot.
+Defines credentials, environment variables, themes, and utility functions
+for retrieving battle themes and theme-associated media assets.
+"""
+
 import os
 import random
 from dotenv import load_dotenv

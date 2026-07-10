@@ -1,3 +1,11 @@
+"""
+ai_client.py
+
+AI Client module for Clash of Wits.
+Interfaces with Gemini and Ollama APIs to evaluate battles, generate fight narratives,
+and validate if submissions fit battle themes.
+"""
+
 import json
 import re
 import aiohttp
@@ -5,7 +13,14 @@ from typing import Dict, Any, Tuple
 import config
 
 class AIClient:
+    """
+    Client for interacting with LLM providers (Gemini/Ollama) to perform theme checking
+    and simulate clashes between player creations.
+    """
     def __init__(self):
+        """
+        Initializes the AIClient with provider configurations loaded from config.py.
+        """
         self.provider = config.AI_PROVIDER
         self.gemini_key = config.GEMINI_API_KEY
         self.gemini_model = config.GEMINI_MODEL
@@ -103,6 +118,38 @@ class AIClient:
             # If AI validation fails, we default to allowing it to not disrupt the game
             return True, f"Validation system error (allowing by default): {str(e)}"
 
+    async def generate_themed_creation(self, theme: Dict[str, str] = None) -> str:
+        """
+        Generates a themed creation for the bot to use in training mode.
+        
+        Args:
+            theme (Dict[str, str]): The current theme dictionary.
+            
+        Returns:
+            str: A short description of a generated themed creation.
+        """
+        if theme:
+            theme_str = f"Theme: {theme['name']} - {theme['description']}"
+        else:
+            theme_str = "Theme: A standard neutral combat arena."
+
+        system_prompt = (
+            "You are the Ultimate Arena Master.\n"
+            "Generate a creative, funny, and interesting combatant/creation that fits the given theme.\n"
+            "The creation must be described in a single short phrase or sentence (maximum 15 words).\n"
+            "Example: For 'Cyberpunk Neon Grid', you might output: 'A cybernetic alley cat with hacking implants'.\n"
+            "Respond ONLY with the creation description, no quotes, no markdown, and no extra text."
+        )
+
+        user_prompt = f"Please generate a creation for this theme:\n{theme_str}"
+
+        try:
+            raw_response = await self._post_to_ai(system_prompt, user_prompt)
+            return raw_response.strip().strip('"').strip("'")
+        except Exception as e:
+            # Fallback creation if AI fails
+            return "A rusty training dummy with a wooden sword."
+
     async def _post_to_ai(self, system_prompt: str, user_prompt: str) -> str:
         """Dispatches the prompt to the configured AI provider and returns the raw response string."""
         if self.provider == "gemini":
@@ -113,6 +160,16 @@ class AIClient:
             raise ValueError(f"Unknown AI Provider: '{self.provider}'")
 
     async def _call_gemini_api(self, system_prompt: str, user_prompt: str) -> str:
+        """
+        Calls the Gemini API asynchronously using aiohttp.
+        
+        Args:
+            system_prompt (str): The instructions for the model's behavior.
+            user_prompt (str): The prompt containing the specific request.
+            
+        Returns:
+            str: The raw text response from the Gemini model.
+        """
         if not self.gemini_key:
             raise ValueError("GEMINI_API_KEY is not configured in the .env file.")
 
@@ -145,6 +202,16 @@ class AIClient:
                     raise Exception(f"Malformed Gemini API response structure. Raw: {data}")
 
     async def _call_ollama_api(self, system_prompt: str, user_prompt: str) -> str:
+        """
+        Calls the Ollama API asynchronously using aiohttp.
+        
+        Args:
+            system_prompt (str): The system prompt detailing constraints and schema.
+            user_prompt (str): The user prompt describing the matchup or theme.
+            
+        Returns:
+            str: The raw text response from the Ollama model.
+        """
         url = f"{self.ollama_url}/api/chat"
         headers = {"Content-Type": "application/json"}
         
@@ -215,7 +282,15 @@ class AIClient:
             return True, f"Approved by default (parsing error: {str(e)})."
 
     def _clean_json_markdown(self, raw_text: str) -> str:
-        """Removes code blocks (```json ... ```) wrapping the JSON output."""
+        """
+        Removes code blocks (```json ... ```) wrapping the JSON output.
+        
+        Args:
+            raw_text (str): The raw response string from the AI model.
+            
+        Returns:
+            str: The cleaned string containing only the JSON structure.
+        """
         cleaned = raw_text.strip()
         if cleaned.startswith("```"):
             cleaned = re.sub(r"^```(?:json)?\n", "", cleaned)
