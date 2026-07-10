@@ -1,3 +1,11 @@
+"""
+database.py
+
+Database helper module for the Clash of Wits bot.
+Handles player profile records, match histories, leaderboards, and asynchronous
+wrappers around SQLite operations using `asyncio.to_thread`.
+"""
+
 import sqlite3
 import asyncio
 from pathlib import Path

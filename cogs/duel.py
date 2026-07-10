@@ -1,3 +1,11 @@
+"""
+duel.py
+
+Cog and UI components for 1v1 duels in Clash of Wits.
+Contains challenge components, submission forms/modals, theme validation,
+and the AI judge integration to resolve combat.
+"""
+
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -11,7 +19,15 @@ from ai_client import AIClient
 ai_client = AIClient()
 
 class CreationModal(discord.ui.Modal):
+    """
+    Discord UI Modal that allows a player to submit their creation description.
+    Integrates theme-compliance checking using AIClient if active.
+    """
     def __init__(self, player_num: str, view: 'ClashSubmissionView'):
+        """
+        Initializes the modal with target player position ('A' or 'B')
+        and the parent ClashSubmissionView.
+        """
         super().__init__(title="Submit Your Creation")
         self.player_num = player_num # 'A' or 'B'
         self.view = view
@@ -26,6 +42,10 @@ class CreationModal(discord.ui.Modal):
         self.add_item(self.creation_input)
 
     async def on_submit(self, interaction: discord.Interaction):
+        """
+        Handles submission event. Runs theme-fit validation if configured,
+        updates parent view creations, and updates the view status.
+        """
         # Defer immediately since LLM API call can exceed the 3-second modal response limit
         await interaction.response.defer(ephemeral=True)
         
@@ -80,7 +100,15 @@ class CreationModal(discord.ui.Modal):
 
 
 class ClashSubmissionView(discord.ui.View):
+    """
+    Discord UI View representing the submission phase of a 1v1 duel.
+    Enables contestants to trigger the CreationModal.
+    """
     def __init__(self, player_a: discord.Member, player_b: discord.Member, theme: dict, theme_check: bool, bot_interaction: discord.Interaction):
+        """
+        Initializes the submission view with details of the participants,
+        the active theme settings, and the initiating interaction.
+        """
         super().__init__(timeout=600)
         self.player_a = player_a
         self.player_b = player_b
@@ -92,6 +120,10 @@ class ClashSubmissionView(discord.ui.View):
         self.done_event = asyncio.Event()
 
     async def update_status(self):
+        """
+        Refreshes the status embed message, tracking which players have submitted.
+        Triggers completion event when both players are ready.
+        """
         # Build status string
         status_a = "✅ Ready!" if self.creation_a else "⏳ Awaiting submission..."
         status_b = "✅ Ready!" if self.creation_b else "⏳ Awaiting submission..."
@@ -118,7 +150,10 @@ class ClashSubmissionView(discord.ui.View):
         if img_url:
             embed.set_image(url=img_url)
         
-        await self.bot_interaction.edit_original_response(embed=embed, view=self)
+        try:
+            await self.bot_interaction.edit_original_response(embed=embed, view=self)
+        except Exception:
+            pass
 
         # Check if both are done
         if self.creation_a and self.creation_b:
@@ -127,6 +162,9 @@ class ClashSubmissionView(discord.ui.View):
 
     @discord.ui.button(label="Submit Creation", style=discord.ButtonStyle.green, custom_id="submit_creation")
     async def submit_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """
+        Button click handler that opens the CreationModal for the eligible player.
+        """
         if interaction.user.id == self.player_a.id:
             if self.creation_a:
                 await interaction.response.send_message("❌ You have already submitted!", ephemeral=True)
@@ -143,12 +181,22 @@ class ClashSubmissionView(discord.ui.View):
             await interaction.response.send_message("❌ You are not part of this duel!", ephemeral=True)
 
     async def on_timeout(self):
+        """
+        Fired when the submission phase's 10-minute timer expires.
+        """
         self.stop()
         self.done_event.set() # Awake the waiter loop to handle the timeout outcome
 
 
 class ClashChallengeView(discord.ui.View):
+    """
+    Discord UI View representing the challenge request sent to a player.
+    Provides buttons to accept or decline the duel.
+    """
     def __init__(self, player_a: discord.Member, player_b: discord.Member, theme: dict):
+        """
+        Initializes the challenge view with challenger, recipient, and the battle theme.
+        """
         super().__init__(timeout=300)
         self.player_a = player_a
         self.player_b = player_b
@@ -158,6 +206,9 @@ class ClashChallengeView(discord.ui.View):
 
     @discord.ui.button(label="Accept", style=discord.ButtonStyle.green, emoji="⚔️")
     async def accept(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """
+        Button handler for the challenged player to accept the duel.
+        """
         if interaction.user.id != self.player_b.id:
             await interaction.response.send_message("❌ You cannot accept this challenge!", ephemeral=True)
             return
@@ -168,6 +219,9 @@ class ClashChallengeView(discord.ui.View):
 
     @discord.ui.button(label="Decline", style=discord.ButtonStyle.red, emoji="🛡️")
     async def decline(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """
+        Button handler for the challenged player to decline the duel.
+        """
         if interaction.user.id != self.player_b.id:
             await interaction.response.send_message("❌ You cannot decline this challenge!", ephemeral=True)
             return
@@ -177,12 +231,21 @@ class ClashChallengeView(discord.ui.View):
         self.stop()
 
     async def on_timeout(self):
+        """
+        Fired when the challenge offer expires.
+        """
         self.accepted = None
         self.stop()
 
 
 class DuelCog(commands.Cog):
+    """
+    Discord Cog containing commands and listeners for managing 1v1 duels.
+    """
     def __init__(self, bot):
+        """
+        Initializes DuelCog with a reference to the running bot instance.
+        """
         self.bot = bot
 
     @app_commands.command(name="clash", description="Challenge another player to a creative 1v1 duel.")
@@ -192,6 +255,10 @@ class DuelCog(commands.Cog):
         theme_check="If enabled, AI will reject submissions that do not fit the theme."
     )
     async def clash(self, interaction: discord.Interaction, opponent: discord.Member, theme_enabled: bool = True, theme_check: bool = True):
+        """
+        Slash command to challenge another player to a 1v1 Clash of Creations.
+        Handles the flow of the challenge, submission phase, and AI judgment.
+        """
         # Validations
         if opponent.bot:
             await interaction.response.send_message("❌ You cannot challenge bots! They are too smart for this game.", ephemeral=True)
@@ -375,4 +442,7 @@ class DuelCog(commands.Cog):
             await interaction.followup.send(embed=result_embed)
 
 async def setup(bot):
+    """
+    Asynchronous function to load the DuelCog extension into the bot.
+    """
     await bot.add_cog(DuelCog(bot))

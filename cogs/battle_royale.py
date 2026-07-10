@@ -1,3 +1,11 @@
+"""
+battle_royale.py
+
+Cog and UI components for Battle Royale style tournaments in Clash of Wits.
+Manages the sign-up lobby, submission phase, matching brackets (including byes),
+and the simulation/logging of all matches in the tournament bracket.
+"""
+
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -12,7 +20,14 @@ from ai_client import AIClient
 ai_client = AIClient()
 
 class BRSubmissionModal(discord.ui.Modal):
+    """
+    Discord UI Modal that allows tournament participants to submit their creation.
+    Integrates theme-compliance checking using AIClient if active.
+    """
     def __init__(self, user_id: int, view: 'BRSubmissionView'):
+        """
+        Initializes the submission modal for a specific user ID and parent view.
+        """
         super().__init__(title="Submit Battle Royale Creation")
         self.user_id = user_id
         self.view = view
@@ -27,6 +42,10 @@ class BRSubmissionModal(discord.ui.Modal):
         self.add_item(self.creation_input)
 
     async def on_submit(self, interaction: discord.Interaction):
+        """
+        Handles the submission event. Performs theme validation if enabled,
+        saves the player's creation, and refreshes the submission view state.
+        """
         # Defer immediately since calling LLM check takes time
         await interaction.response.defer(ephemeral=True)
         
@@ -78,16 +97,29 @@ class BRSubmissionModal(discord.ui.Modal):
 
 
 class BRSubmissionView(discord.ui.View):
+    """
+    Discord UI View managing player submissions during the Battle Royale phase.
+    Enables early starts by the host/moderators.
+    """
     def __init__(self, contestants: List[discord.Member], theme: dict, theme_check: bool, host: discord.Member, bot_interaction: discord.Interaction):
+        """
+        Initializes the submission view with target contestants, theme, host,
+        and original interaction.
+        """
         super().__init__(timeout=600) # 10 minutes to submit
         self.contestants = contestants
         self.theme = theme
         self.theme_check = theme_check
+        self.host = host
         self.bot_interaction = bot_interaction
         self.creations = {} # user_id -> creation_text
         self.done_event = asyncio.Event()
 
     async def update_status(self):
+        """
+        Refreshes the status message list of ready contestants.
+        Stops the view and triggers the completion event when all participants have submitted.
+        """
         status_lines = []
         for c in self.contestants:
             status = "✅ Ready!" if c.id in self.creations else "⏳ Awaiting..."
@@ -115,7 +147,10 @@ class BRSubmissionView(discord.ui.View):
         if img_url:
             embed.set_image(url=img_url)
             
-        await self.bot_interaction.edit_original_response(embed=embed, view=self)
+        try:
+            await self.bot_interaction.edit_original_response(embed=embed, view=self)
+        except Exception:
+            pass
 
         # Check if all submitted
         if len(self.creations) == len(self.contestants):
@@ -124,6 +159,9 @@ class BRSubmissionView(discord.ui.View):
 
     @discord.ui.button(label="Submit Creation", style=discord.ButtonStyle.green, custom_id="br_submit")
     async def submit_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """
+        Button click handler for registered players to submit their creations.
+        """
         user_ids = [c.id for c in self.contestants]
         if interaction.user.id not in user_ids:
             await interaction.response.send_message("❌ You are not registered in this Battle Royale!", ephemeral=True)
@@ -138,6 +176,10 @@ class BRSubmissionView(discord.ui.View):
 
     @discord.ui.button(label="Start Clash", style=discord.ButtonStyle.blurple, custom_id="br_force_start")
     async def force_start_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """
+        Button click handler allowing the host or a moderator to start the tournament early,
+        provided there are at least two submissions.
+        """
         is_host = interaction.user.id == self.host.id
         is_mod = interaction.user.guild_permissions.manage_messages
         
@@ -154,12 +196,21 @@ class BRSubmissionView(discord.ui.View):
         self.stop()
 
     async def on_timeout(self):
+        """
+        Fired when the submission phase's 10-minute timer expires.
+        """
         self.stop()
         self.done_event.set()
 
 
 class BRLobbyView(discord.ui.View):
+    """
+    Discord UI View representing the sign-up lobby for a Battle Royale tournament.
+    """
     def __init__(self, host: discord.Member, theme: dict, bot_interaction: discord.Interaction):
+        """
+        Initializes the lobby with the host, target battle theme, and the interaction context.
+        """
         super().__init__(timeout=300) # 5 minutes lobby before expiring
         self.host = host
         self.theme = theme
@@ -169,6 +220,12 @@ class BRLobbyView(discord.ui.View):
         self.done_event = asyncio.Event()
 
     def build_lobby_embed_and_file(self) -> tuple:
+        """
+        Constructs and returns the lobby status Embed and associated file attachment.
+        
+        Returns:
+            tuple: (discord.Embed, discord.File or None)
+        """
         contestant_list = "\n".join([f"• {c.mention}" for c in self.contestants]) if self.contestants else "*No one has joined yet.*"
         
         theme_text = ""
@@ -194,11 +251,20 @@ class BRLobbyView(discord.ui.View):
         return embed, file
 
     async def update_lobby_embed(self):
+        """
+        Refreshes the active lobby message with updated contestant list.
+        """
         embed, _ = self.build_lobby_embed_and_file()
-        await self.bot_interaction.edit_original_response(embed=embed, view=self)
+        try:
+            await self.bot_interaction.edit_original_response(embed=embed, view=self)
+        except Exception:
+            pass
 
     @discord.ui.button(label="Join", style=discord.ButtonStyle.green, emoji="⚔️")
     async def join(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """
+        Button click handler that signs a player up for the tournament.
+        """
         if interaction.user.bot:
             await interaction.response.send_message("❌ Bots cannot join!", ephemeral=True)
             return
@@ -217,6 +283,9 @@ class BRLobbyView(discord.ui.View):
 
     @discord.ui.button(label="Leave", style=discord.ButtonStyle.red, emoji="🛡️")
     async def leave(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """
+        Button click handler that removes a player from the lobby.
+        """
         if interaction.user not in self.contestants:
             await interaction.response.send_message("❌ You are not in the lobby!", ephemeral=True)
             return
@@ -227,6 +296,10 @@ class BRLobbyView(discord.ui.View):
 
     @discord.ui.button(label="Start Tournament", style=discord.ButtonStyle.blurple, emoji="🏆")
     async def start(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """
+        Button click handler allowing the host or a moderator to lock in contestants
+        and start the submission phase.
+        """
         # Only the host or someone with manage_messages can start
         is_host = interaction.user.id == self.host.id
         is_admin = interaction.user.guild_permissions.manage_messages
@@ -245,12 +318,21 @@ class BRLobbyView(discord.ui.View):
         await interaction.response.send_message("🚀 Starting the tournament!", ephemeral=True)
 
     async def on_timeout(self):
+        """
+        Fired when the lobby's 5-minute sign-up timer expires.
+        """
         self.stop()
         self.done_event.set()
 
 
 class BattleRoyaleCog(commands.Cog):
+    """
+    Discord Cog containing commands for launching and executing Battle Royale tournaments.
+    """
     def __init__(self, bot):
+        """
+        Initializes BattleRoyaleCog with a reference to the running bot instance.
+        """
         self.bot = bot
 
     @app_commands.command(name="clash_br", description="Starts a Clash of Creations Battle Royale tournament.")
@@ -259,6 +341,11 @@ class BattleRoyaleCog(commands.Cog):
         theme_check="If enabled, AI will reject submissions that do not fit the theme."
     )
     async def clash_br(self, interaction: discord.Interaction, theme_enabled: bool = True, theme_check: bool = True):
+        """
+        Slash command to host a Battle Royale tournament.
+        Launches the sign-up lobby, coordinates submission, shuffles brackets,
+        runs matchups using AI simulation, and crowns the final champion.
+        """
         # Choose theme
         theme = config.get_random_theme() if theme_enabled else None
         
@@ -497,4 +584,7 @@ class BattleRoyaleCog(commands.Cog):
         await channel.send(content=champion.mention, embed=victory_embed)
 
 async def setup(bot):
+    """
+    Asynchronous function to load the BattleRoyaleCog extension into the bot.
+    """
     await bot.add_cog(BattleRoyaleCog(bot))

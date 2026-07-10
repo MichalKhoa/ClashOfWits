@@ -1,15 +1,33 @@
+"""
+stats.py
+
+Cog containing statistics commands for Clash of Wits.
+Provides `/profile` to view individual stats and `/leaderboard` to view the top players.
+"""
+
 import discord
 from discord import app_commands
 from discord.ext import commands
 import database
 
 class StatsCog(commands.Cog):
+    """
+    Discord Cog containing commands for displaying player profiles, statistics,
+    and the global wins leaderboard.
+    """
     def __init__(self, bot):
+        """
+        Initializes StatsCog with a reference to the running bot instance.
+        """
         self.bot = bot
 
     @app_commands.command(name="profile", description="Shows a player's Clash of Creations profile and stats.")
     @app_commands.describe(member="The member whose profile you want to view (defaults to you).")
     async def profile(self, interaction: discord.Interaction, member: discord.Member = None):
+        """
+        Slash command to retrieve and display stats for a specific member,
+        or the calling user if no member is specified.
+        """
         target = member or interaction.user
         
         # Defer reply because db query is async (though fast, standard practice)
@@ -76,6 +94,10 @@ class StatsCog(commands.Cog):
 
     @app_commands.command(name="leaderboard", description="Displays the top 10 Clash of Creations champions.")
     async def leaderboard(self, interaction: discord.Interaction):
+        """
+        Slash command to retrieve and display the top 10 players on the server,
+        ranked by total wins.
+        """
         await interaction.response.defer()
         
         leaderboard_data = await database.get_leaderboard(10)
@@ -116,4 +138,7 @@ class StatsCog(commands.Cog):
         await interaction.followup.send(embed=embed)
 
 async def setup(bot):
+    """
+    Asynchronous function to load the StatsCog extension into the bot.
+    """
     await bot.add_cog(StatsCog(bot))

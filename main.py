@@ -1,3 +1,11 @@
+"""
+main.py
+
+The entry point for the Clash of Wits Discord Bot.
+This file initializes the bot, configures logging, loads the necessary cogs,
+and runs the main event loop.
+"""
+
 import discord
 from discord.ext import commands
 import os
@@ -11,7 +19,15 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(
 logger = logging.getLogger("ClashOfWits")
 
 class DiscordBot(commands.Bot):
+    """
+    A custom Discord Bot client that handles event dispatching, database initialization,
+    and cog loading for Clash of Wits.
+    """
     def __init__(self):
+        """
+        Initializes the DiscordBot instance with default intents and settings.
+        Sets the command prefix to '!' and configures owner_id.
+        """
         # We need message_content intent to read prefix commands (like !sync)
         intents = discord.Intents.default()
         intents.message_content = True
@@ -24,6 +40,10 @@ class DiscordBot(commands.Bot):
         )
 
     async def setup_hook(self):
+        """
+        An asynchronous hook called after the bot is connected.
+        Responsible for initializing the SQLite database and loading all bot cogs/extensions.
+        """
         # 1. Initialize SQLite Database
         logger.info("Initializing database...")
         await database.init_db()
@@ -33,7 +53,8 @@ class DiscordBot(commands.Bot):
         extensions = [
             "cogs.stats",
             "cogs.duel",
-            "cogs.battle_royale"
+            "cogs.battle_royale",
+            "cogs.training"
         ]
         
         for extension in extensions:
@@ -46,11 +67,19 @@ class DiscordBot(commands.Bot):
         # Note: Auto-sync removed from here to prevent API rate-limiting on every restart.
 
     async def on_ready(self):
+        """
+        Event handler called when the bot has successfully connected to Discord
+        and finished setting up its internal state.
+        """
         logger.info(f"🤖 Bot is logged in as: {self.user.name} (ID: {self.user.id})")
         logger.info("------ Bot Ready ------")
         logger.info("Commands are NOT auto-synced. Use the prefix command `!sync` in your server to register slash commands.")
 
     async def on_connect(self):
+        """
+        Event handler called when the bot successfully establishes a connection
+        with the Discord gateway.
+        """
         logger.info(f"Connected to Discord gateway. Connected to {len(self.guilds)} servers.")
 
 bot = DiscordBot()
@@ -107,10 +136,17 @@ async def sync_commands(ctx: commands.Context, scope: str = None):
 # Error handler for sync command permissions
 @sync_commands.error
 async def sync_error(ctx: commands.Context, error: Exception):
+    """
+    Error handler for the sync command to inform unauthorized users that they cannot sync commands.
+    """
     if isinstance(error, commands.NotOwner):
         await ctx.send("❌ Only the bot owner can execute the sync command.")
 
 async def main():
+    """
+    The main asynchronous entry point of the bot application.
+    Validates configuration, starts the bot, and handles application shutdown.
+    """
     if not config.DISCORD_TOKEN:
         logger.error("❌ DISCORD_TOKEN is missing! Please configure it in your .env file.")
         return
