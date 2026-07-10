@@ -11,6 +11,10 @@ from ai_client import AIClient
 ai_client = AIClient()
 
 class CreationModal(discord.ui.Modal):
+    """
+    A Discord UI modal that allows a player to type in and submit their creation.
+    Validates theme compliance via AI checking if a theme is active.
+    """
     def __init__(self, player_num: str, view: 'ClashSubmissionView'):
         super().__init__(title="Submit Your Creation")
         self.player_num = player_num # 'A' or 'B'
@@ -80,6 +84,10 @@ class CreationModal(discord.ui.Modal):
 
 
 class ClashSubmissionView(discord.ui.View):
+    """
+    A view containing the 'Submit Creation' button during a 1v1 duel.
+    Coordinates private modal submissions from both players and tracks status.
+    """
     def __init__(self, player_a: discord.Member, player_b: discord.Member, theme: dict, theme_check: bool, bot_interaction: discord.Interaction):
         super().__init__(timeout=600)
         self.player_a = player_a
@@ -148,6 +156,9 @@ class ClashSubmissionView(discord.ui.View):
 
 
 class ClashChallengeView(discord.ui.View):
+    """
+    A view containing 'Accept' and 'Decline' buttons for the challenged player in a 1v1 duel.
+    """
     def __init__(self, player_a: discord.Member, player_b: discord.Member, theme: dict):
         super().__init__(timeout=300)
         self.player_a = player_a
@@ -182,6 +193,9 @@ class ClashChallengeView(discord.ui.View):
 
 
 class DuelCog(commands.Cog):
+    """
+    Discord Cog containing commands and handlers for 1v1 creation duels.
+    """
     def __init__(self, bot):
         self.bot = bot
 

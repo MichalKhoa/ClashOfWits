@@ -12,6 +12,10 @@ from ai_client import AIClient
 ai_client = AIClient()
 
 class BRSubmissionModal(discord.ui.Modal):
+    """
+    A Discord UI modal that allows Battle Royale participants to privately submit their creation.
+    Validates theme compliance via AI checking if a theme is active.
+    """
     def __init__(self, user_id: int, view: 'BRSubmissionView'):
         super().__init__(title="Submit Battle Royale Creation")
         self.user_id = user_id
@@ -78,6 +82,10 @@ class BRSubmissionModal(discord.ui.Modal):
 
 
 class BRSubmissionView(discord.ui.View):
+    """
+    A view containing the 'Submit Creation' button during a Battle Royale lobby.
+    Coordinates private modal submissions from all joined contestants.
+    """
     def __init__(self, contestants: List[discord.Member], theme: dict, theme_check: bool, host: discord.Member, bot_interaction: discord.Interaction):
         super().__init__(timeout=600) # 10 minutes to submit
         self.contestants = contestants
@@ -159,6 +167,10 @@ class BRSubmissionView(discord.ui.View):
 
 
 class BRLobbyView(discord.ui.View):
+    """
+    A view representing the Battle Royale lobby.
+    Provides 'Join', 'Leave', and 'Start Tournament' buttons, tracking joined contestants.
+    """
     def __init__(self, host: discord.Member, theme: dict, bot_interaction: discord.Interaction):
         super().__init__(timeout=300) # 5 minutes lobby before expiring
         self.host = host
@@ -250,6 +262,9 @@ class BRLobbyView(discord.ui.View):
 
 
 class BattleRoyaleCog(commands.Cog):
+    """
+    Discord Cog containing commands and handlers for tournament Battle Royale creation duels.
+    """
     def __init__(self, bot):
         self.bot = bot
 
