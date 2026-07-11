@@ -1,0 +1,9 @@
+services:
+  bot:
+    build: .
+    container_name: clash_of_wits_bot
+    restart: unless-stopped
+    environment:
+      - DATABASE_PATH=/app/data/clash_of_wits.db
+    volumes:
+      - /home/michalkhoa/services/HimmelTheHero/.env:/app/.env

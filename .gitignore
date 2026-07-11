@@ -7,3 +7,5 @@ __pycache__/config.cpython-312.pyc
 .idea/inspectionProfiles/Project_Default.xml
 .idea/.gitignore
 cogs/__pycache__/battle_royale.cpython-312.pyc
+__pycache__/database.cpython-312.pyc
+.gitignore
