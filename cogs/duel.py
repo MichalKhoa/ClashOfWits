@@ -420,11 +420,6 @@ class DuelCog(commands.Cog):
             value=f"> *{creation_b_desc}*\n\u200b",
             inline=False
         )
-        result_embed.add_field(
-            name="💥 The Clash",
-            value=f"### *{fight_narrative}*",
-            inline=False
-        )
         result_embed.set_footer(text="⚔️ Clash resolved! Check your /profile for stats.")
         
         img_url, file = config.get_theme_image(theme)

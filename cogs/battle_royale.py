@@ -562,12 +562,6 @@ class BattleRoyaleCog(commands.Cog):
                     value=f"> *{creation_b_desc}*\n\u200b",
                     inline=False
                 )
-                result_embed.add_field(
-                    name="💥 The Clash",
-                    value=f"### *{fight_narrative}*",
-                    inline=False
-                )
-                
                 img_url, file = config.get_theme_image(theme)
                 if img_url:
                     result_embed.set_image(url=img_url)

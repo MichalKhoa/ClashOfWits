@@ -47,17 +47,15 @@ class AIClient:
 
         system_prompt = (
             "You are the Ultimate Arena Master and Judge of the Clash of Creations.\n"
-            "Two creations submitted by players are going to battle. Your job is to analyze them, describe a quick fight, and pick the winner.\n"
+            "Two creations submitted by players are going to battle. Your job is to analyze them and pick the winner.\n"
             "You must return a JSON response containing:\n"
             "1. A funny, roast-style one-liner or short satirical sentence describing Creation A.\n"
             "2. A funny, roast-style one-liner or short satirical sentence describing Creation B.\n"
-            "3. A 1-to-2 sentence fast-paced, funny description of the fight itself.\n"
-            "4. The winner code ('A' or 'B') and the winning reason.\n\n"
+            "3. The winner code ('A' or 'B') and the winning reason.\n\n"
             "You MUST respond ONLY with a JSON object matching this schema:\n"
             "{\n"
             '  "creation_a_desc": "A funny, roast-style one-liner or short satirical sentence describing Creation A",\n'
             '  "creation_b_desc": "A funny, roast-style one-liner or short satirical sentence describing Creation B",\n'
-            '  "fight_narrative": "A quick, action-packed description of the clash (strictly 1 to 2 sentences)",\n'
             '  "winner": "A" or "B",\n'
             '  "reason": "One sentence summary explaining why they won"\n'
             "}\n"
@@ -68,7 +66,7 @@ class AIClient:
             f"{theme_str}\n"
             f"Creation A: \"{creation_a}\" (controlled by {player_a_name})\n"
             f"Creation B: \"{creation_b}\" (controlled by {player_b_name})\n\n"
-            f"Let the clash begin!"
+            f"Determine the winner!"
         )
 
         try:
@@ -238,14 +236,14 @@ class AIClient:
                 return data["message"]["content"]
 
     def _parse_battle_json(self, raw_text: str) -> Tuple[str, str, str, str, str]:
-        """Parses the JSON response from the LLM, extracting descriptions, narrative, winner, and reason."""
+        """Parses the JSON response from the LLM, extracting descriptions, winner, and reason."""
+        fight_narrative = "The clash has finished."
         try:
             cleaned = self._clean_json_markdown(raw_text)
             parsed = json.loads(cleaned)
             
             creation_a_desc = parsed.get("creation_a_desc", "A funny challenger.")
             creation_b_desc = parsed.get("creation_b_desc", "An interesting opponent.")
-            fight_narrative = parsed.get("fight_narrative", "They clashed, and one emerged victorious.")
             
             winner_raw = parsed.get("winner", "A").upper().strip()
             # Ensure winner is A or B
@@ -257,13 +255,11 @@ class AIClient:
             # Fallback regex search if JSON is malformed
             c_a_match = re.search(r'"creation_a_desc"\s*:\s*"([^"]+)"', raw_text)
             c_b_match = re.search(r'"creation_b_desc"\s*:\s*"([^"]+)"', raw_text)
-            fight_match = re.search(r'"fight_narrative"\s*:\s*"([^"]+)"', raw_text)
             winner_match = re.search(r'"winner"\s*:\s*"([^"]+)"', raw_text)
             reason_match = re.search(r'"reason"\s*:\s*"([^"]+)"', raw_text)
             
             creation_a_desc = c_a_match.group(1) if c_a_match else "The first creation."
             creation_b_desc = c_b_match.group(1) if c_b_match else "The second creation."
-            fight_narrative = fight_match.group(1) if fight_match else "The battle was chaotic."
             winner_val = winner_match.group(1).upper() if winner_match else "A"
             winner = "A" if "A" in winner_val else "B"
             reason = reason_match.group(1) if reason_match else "AI did not return structured JSON."
