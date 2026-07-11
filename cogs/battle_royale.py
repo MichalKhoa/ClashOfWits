@@ -346,6 +346,28 @@ class BattleRoyaleCog(commands.Cog):
         Launches the sign-up lobby, coordinates submission, shuffles brackets,
         runs matchups using AI simulation, and crowns the final champion.
         """
+        # Check permissions in guild channel
+        if interaction.guild and interaction.channel:
+            bot_member = interaction.guild.me or interaction.guild.get_member(self.bot.user.id)
+            if bot_member:
+                permissions = interaction.channel.permissions_for(bot_member)
+                missing = []
+                if not permissions.send_messages:
+                    missing.append("Send Messages")
+                if not permissions.embed_links:
+                    missing.append("Embed Links")
+                if not permissions.attach_files:
+                    missing.append("Attach Files")
+                    
+                if missing:
+                    missing_str = ", ".join(f"`{perm}`" for perm in missing)
+                    await interaction.response.send_message(
+                        f"❌ I am missing the following required permissions in this channel to run the tournament: {missing_str}.\n"
+                        f"Please grant me these permissions or run the command in a channel where I have them.",
+                        ephemeral=True
+                    )
+                    return
+
         # Choose theme
         theme = config.get_random_theme() if theme_enabled else None
         
