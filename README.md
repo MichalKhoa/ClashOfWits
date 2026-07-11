@@ -56,13 +56,35 @@ OLLAMA_API_URL=http://localhost:11434
 OLLAMA_MODEL=llama3
 ```
 
-### 4. Running the Bot
+### 4. Running the Bot (Locally)
 Start the bot script:
 
 ```bash
 python main.py
 ```
-The bot will automatically connect to Discord, initialize the local SQLite database (`clash_of_wits.db`), and register the slash commands globally.
+The bot will automatically connect to Discord, initialize the local SQLite database (`clash_of_wits.db`), and register the slash commands.
+
+### 5. Running with Docker
+You can also run the bot inside a Docker container. This project includes a `Dockerfile` and a `docker-compose.yml` to make deployment and database persistence easy.
+
+#### Prerequisites
+- [Docker](https://www.docker.com/) and Docker Compose installed.
+- Your `.env` file correctly configured at the root of the project.
+
+#### Steps to Run
+1. Build and start the container in detached mode:
+   ```bash
+   docker-compose up --build -d
+   ```
+2. The bot will start and use a volume mount under the `./data` directory on the host to persist the SQLite database (`clash_of_wits.db`).
+3. Check the logs to ensure the bot connected successfully:
+   ```bash
+   docker-compose logs -f
+   ```
+4. To stop the bot:
+   ```bash
+   docker-compose down
+   ```
 
 ---
 

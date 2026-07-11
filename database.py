@@ -8,9 +8,10 @@ wrappers around SQLite operations using `asyncio.to_thread`.
 
 import sqlite3
 import asyncio
+import os
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "clash_of_wits.db"
+DB_PATH = Path(os.getenv("DATABASE_PATH", Path(__file__).parent / "clash_of_wits.db"))
 
 def _init_db_sync():
     """Initializes the database schema synchronously."""
