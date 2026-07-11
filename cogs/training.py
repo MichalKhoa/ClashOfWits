@@ -198,19 +198,19 @@ class TrainingView(discord.ui.View):
             f"# {self.user.mention} " + ("defeated the Arena Bot!" if user_won else "was defeated by the Arena Bot!") + "\n\n"
             f"🏆 **Winner:** `{winner_name}`\n\n"
             f"💡 **Reason:** *{reason}*\n\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
             f"{theme_desc}"
         )
             
         result_embed.add_field(
             name=f"🔴 {self.user.display_name}'s `{self.user_creation}`",
             value=f"> *{creation_a_desc}*\n\u200b",
-            inline=False
+            inline=True
         )
         result_embed.add_field(
             name=f"🤖 Arena Bot's `{self.bot_creation}`",
             value=f"> *{creation_b_desc}*\n\u200b",
-            inline=False
+            inline=True
         )
         result_embed.set_footer(text="🎯 Training completed! Keep practicing to climb the ranks.")
         

@@ -548,19 +548,19 @@ class BattleRoyaleCog(commands.Cog):
                     f"# {winner.mention} has claimed victory!\n\n"
                     f"🏆 **Winning Creation:** `{winner_creation}`\n\n"
                     f"💡 **Reason:** *{reason}*\n\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
                     f"{theme_desc}"
                 )
                 
                 result_embed.add_field(
                     name=f"🔴 {p_a.display_name}'s `{creations[p_a.id]}`",
                     value=f"> *{creation_a_desc}*\n\u200b",
-                    inline=False
+                    inline=True
                 )
                 result_embed.add_field(
                     name=f"🔵 {p_b.display_name}'s `{creations[p_b.id]}`",
                     value=f"> *{creation_b_desc}*\n\u200b",
-                    inline=False
+                    inline=True
                 )
                 img_url, file = config.get_theme_image(theme)
                 if img_url:

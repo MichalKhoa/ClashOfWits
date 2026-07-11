@@ -406,19 +406,19 @@ class DuelCog(commands.Cog):
             f"# {winner.mention} has claimed victory!\n\n"
             f"🏆 **Winning Creation:** `{winner_creation}`\n\n"
             f"💡 **Reason:** *{reason}*\n\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
             f"{theme_desc}"
         )
             
         result_embed.add_field(
             name=f"🔴 {interaction.user.display_name}'s `{submission_view.creation_a}`",
             value=f"> *{creation_a_desc}*\n\u200b",
-            inline=False
+            inline=True
         )
         result_embed.add_field(
             name=f"🔵 {opponent.display_name}'s `{submission_view.creation_b}`",
             value=f"> *{creation_b_desc}*\n\u200b",
-            inline=False
+            inline=True
         )
         result_embed.set_footer(text="⚔️ Clash resolved! Check your /profile for stats.")
         
