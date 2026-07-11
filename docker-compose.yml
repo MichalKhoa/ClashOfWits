@@ -8,4 +8,4 @@ services:
     environment:
       - DATABASE_PATH=/app/data/clash_of_wits.db
     volumes:
-      - ./data:/app/data
+      - /home/michalkhoa/services/HimmelTheHero/.env:/app/.env
